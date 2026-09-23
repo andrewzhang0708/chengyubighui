@@ -1,5 +1,7 @@
 # 成语大会
 
+https://chengyubighui.vercel.app/
+
 根据上级目录 `design.md` 与五张界面草图实现的浏览器小程序，适合聚会、投屏和手机使用。
 
 ## 运行
