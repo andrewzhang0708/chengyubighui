@@ -1,0 +1,22 @@
+appId: local.chengyu.dahui
+productName: 成语大会
+directories:
+  app: desktop
+  output: desktop-release
+files:
+  - main.cjs
+  - renderer/**/*
+  - package.json
+  - '!node_modules/**/*'
+asar: true
+npmRebuild: false
+win:
+  executableName: ChengyuDahui
+  target:
+    - target: portable
+      arch:
+        - x64
+  signAndEditExecutable: false
+portable:
+  artifactName: ChengyuDahui-1.0.0-Windows-x64.exe
+  requestExecutionLevel: user

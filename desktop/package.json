@@ -1,0 +1,8 @@
+{
+  "name": "chengyu-dahui",
+  "version": "1.0.0",
+  "description": "成语大会：离线成语聚会游戏，支持限时、限词和本地题库。",
+  "author": "成语大会",
+  "private": true,
+  "main": "main.cjs"
+}
