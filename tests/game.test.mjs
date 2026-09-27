@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createRound, elapsed, formatTime, judge, parseWords, shuffled, tick, validateSettings } from '../lib/game.ts';
+import { classifyWord, createRound, elapsed, formatTime, judge, parseWords, shuffled, stratified, tick, validateSettings } from '../lib/game.ts';
 
 const words = ['坚定不移', '随时随地', '全力以赴', '丰富多彩', '脱颖而出'];
 const settings = { target: 2, seconds: 2, fouls: 0, skips: 0 };
@@ -9,6 +9,16 @@ test('TXT import handles BOM, whitespace, frequencies, duplicates and invalid li
   assert.deepEqual(parseWords('\uFEFF坚定不移\t54113\r\n随时随地   52510\n\n坚定不移\n三字词\n五个字词语\nABCD\n'), {
     words: ['坚定不移', '随时随地'], invalid: 3, duplicates: 1,
   });
+});
+
+test('cleans obvious non-idioms and allocates the configured difficulty ratio', () => {
+  const library = ['画龙点睛', '守株待兔', '心领神会', '随时随地', '魑魅魍魉', '盗墓笔记'];
+  const deck = stratified(library, { easy: 50, medium: 25, hard: 25 }, () => 0.5);
+  assert.equal(deck.includes('盗墓笔记'), false);
+  assert.equal(deck.length, 5);
+  assert.equal(deck.filter(word => classifyWord(word) === 'easy').length, 2);
+  assert.equal(deck.filter(word => classifyWord(word) === 'medium').length, 2);
+  assert.equal(deck.filter(word => classifyWord(word) === 'hard').length, 1);
 });
 
 test('word mode only counts correct answers and allows exceeding foul/skip limits', () => {
@@ -62,6 +72,7 @@ test('validates impossible targets, empty libraries, non-integers and negative c
   assert.ok(validateSettings('word', { ...settings, target: 1.5 }, 5));
   assert.ok(validateSettings('time', { ...settings, fouls: -1 }, 5));
   assert.equal(validateSettings('word', settings, 5), '');
+  assert.ok(validateSettings('time', { ...settings, ratios: { easy: 50, medium: 50, hard: 1 } }, 5));
 });
 
 test('shuffle preserves every word without mutating source; timers round in correct direction', () => {

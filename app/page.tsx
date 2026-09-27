@@ -2,16 +2,19 @@
 
 import { useEffect, useRef, useState } from 'react';
 import defaultWords from '../data/default.json';
-import { createRound, elapsed, finish, formatTime, judge, parseWords, tick, validateSettings, type Mode, type Round, type Settings, type Verdict } from '../lib/game';
+import bonusWords from '../data/bonus.json';
+import { classifyWord, cleanWords, createRound, defaultRatios, elapsed, finish, formatTime, judge, parseWords, tick, validateSettings, type Difficulty, type Mode, type Round, type Settings, type Verdict } from '../lib/game';
 
-const initialSettings: Settings = { target: 10, seconds: 120, fouls: 3, skips: 3 };
+const initialSettings: Settings = { target: 10, seconds: 120, fouls: 3, skips: 3, ratios: defaultRatios };
 const labels = { correct: '答对', skip: '跳过', foul: '犯规' };
+const difficultyLabels: Record<Difficulty, string> = { easy: '下 / 简单', medium: '中 / 适中', hard: '上 / 挑战' };
+const defaultLibrary = cleanWords([...defaultWords, ...bonusWords]);
 
 export default function Home() {
   const [screen, setScreen] = useState<'home' | 'setup' | 'game'>('home');
   const [mode, setMode] = useState<Mode>('time');
   const [settings, setSettings] = useState(initialSettings);
-  const [words, setWords] = useState(defaultWords);
+  const [words, setWords] = useState(defaultLibrary);
   const [library, setLibrary] = useState('default.txt');
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
@@ -104,7 +107,7 @@ export default function Home() {
   }
 
   function resetLibrary() {
-    uploadId.current++; setReading(false); setWords(defaultWords); setLibrary('default.txt'); setNotice('已恢复默认题库。'); setError('');
+    uploadId.current++; setReading(false); setWords(defaultLibrary); setLibrary('default.txt'); setNotice('已恢复默认题库。'); setError('');
   }
 
   async function fullscreen() {
@@ -130,7 +133,7 @@ export default function Home() {
         <button className="mode" onClick={() => selectMode('time')}><span className="number">01 / 限时挑战</span><h2>争分夺秒 <span>↗</span></h2><p>时间有限，默契无限。倒计时内，猜对越多越好。</p><b>进入限时模式 →</b></button>
         <button className="mode green" onClick={() => selectMode('word')}><span className="number">02 / 限词挑战</span><h2>一气呵成 <span>↗</span></h2><p>锁定目标，挑战速度。看看你们能多快猜完。</p><b>进入限词模式 →</b></button>
       </div>
-      <div className="home-note"><span className="dot"/> 内置 {defaultWords.length.toLocaleString()} 个四字成语 <span>支持导入自己的 TXT 题库</span></div>
+      <div className="home-note"><span className="dot"/> 内置 {defaultLibrary.length.toLocaleString()} 个四字成语 <span>支持导入自己的 TXT 题库</span></div>
     </>}
 
     {screen === 'setup' && <>
@@ -142,8 +145,11 @@ export default function Home() {
             <label className="field"><span>{mode === 'time' ? '挑战时间' : '目标词数'}</span><div><input aria-label={mode === 'time' ? '挑战时间' : '目标词数'} type="number" required min="1" max={mode === 'time' ? 86400 : 9999} step="1" value={Number.isNaN(settings[mode === 'time' ? 'seconds' : 'target']) ? '' : settings[mode === 'time' ? 'seconds' : 'target']} onChange={event => setSettings({ ...settings, [mode === 'time' ? 'seconds' : 'target']: event.target.valueAsNumber })}/><span>{mode === 'time' ? '秒' : '个'}</span></div></label>
             {(['fouls', 'skips'] as const).map((key) => <label className="field" key={key}><span>{key === 'fouls' ? '犯规参考次数' : '跳过参考次数'}</span><div><input aria-label={key === 'fouls' ? '犯规参考次数' : '跳过参考次数'} type="number" required min="0" max="9999" step="1" value={Number.isNaN(settings[key]) ? '' : settings[key]} onChange={event => setSettings({ ...settings, [key]: event.target.valueAsNumber })}/><span>次</span></div></label>)}
             <p className="hint">犯规与跳过仅计次，达到参考次数也可以继续。</p>
+            <h3 className="difficulty-title">难度比例</h3>
+            <div className="difficulty-fields">{(['easy', 'medium', 'hard'] as const).map(difficulty => <label className="field" key={difficulty}><span>{difficultyLabels[difficulty]}</span><div><input aria-label={`${difficultyLabels[difficulty]}比例`} type="number" required min="0" max="100" step="1" value={settings.ratios?.[difficulty] ?? ''} onChange={event => setSettings({ ...settings, ratios: { ...defaultRatios, ...settings.ratios, [difficulty]: event.target.valueAsNumber } })}/><span>%</span></div></label>)}</div>
+            <p className="hint">当前设置合计 {Object.values(settings.ratios ?? defaultRatios).reduce((sum, value) => sum + (Number.isNaN(value) ? 0 : value), 0)}%，抽题会尽量按比例分配。</p>
           </section>
-          <section className="panel library"><h2><span>二</span> 挑选题库</h2><div className="file-icon">词</div><strong>{library}</strong><p>{words.length.toLocaleString()} 个成语 · 随机出题 · 本轮不重复</p><label className={`upload-button ${reading ? 'disabled' : ''}`}>{reading ? '正在读取…' : '↑ 导入 TXT 题库'}<input type="file" accept=".txt,text/plain" disabled={reading} onChange={event => { upload(event.target.files?.[0]); event.target.value = ''; }}/></label><button className="text-button" type="button" onClick={resetLibrary}>恢复默认题库</button><p className="hint">每行一个成语，也兼容「成语 + 空格 + 数字」。<br/>文件仅在当前浏览器读取，不上传。</p></section>
+          <section className="panel library"><h2><span>二</span> 挑选题库</h2><div className="file-icon">词</div><strong>{library}</strong><p>{words.length.toLocaleString()} 个成语 · 分层随机 · 本轮不重复</p><label className={`upload-button ${reading ? 'disabled' : ''}`}>{reading ? '正在读取…' : '↑ 导入 TXT 题库'}<input type="file" accept=".txt,text/plain" disabled={reading} onChange={event => { upload(event.target.files?.[0]); event.target.value = ''; }}/></label><button className="text-button" type="button" onClick={resetLibrary}>恢复默认题库</button><p className="hint">每行一个成语，也兼容「成语 + 空格 + 数字」。<br/>文件仅在当前浏览器读取，不上传。</p></section>
         </div>
         {notice && <p className="notice" role="status">{notice}</p>}
         {error && <p className="error" role="alert">{error}</p>}
@@ -154,7 +160,7 @@ export default function Home() {
     {screen === 'game' && round && !result && <>
       <div className="game-heading"><span className="eyebrow">{title} / 挑战进行中</span><div className="game-actions"><button className="exit-button" onClick={exitToSetup}>← 退出本轮</button><button ref={endButton} className="text-button" onClick={() => setExitOpen(true)}>结束并结算</button></div></div>
       <div className="scoreboard"><div className={round.mode === 'time' && timeLeft <= 10000 ? 'danger' : ''}><span>{round.mode === 'time' ? '剩余时间' : '已用时间'}</span><strong>{formatTime(round.mode === 'time' ? timeLeft : duration, round.mode === 'time')}</strong></div><div className="score"><span>已答对</span><strong>{round.correct}{round.mode === 'word' && <small> / {round.settings.target}</small>}</strong></div></div>
-      <section className="word-stage" aria-label="当前成语"><p className="word-number">第 {String(round.cursor + 1).padStart(2, '0')} 题</p><h1 key={round.cursor}>{round.deck[round.cursor]}</h1><p>心领神会，就在此刻</p></section>
+      <section className="word-stage" aria-label="当前成语"><p className="word-number">第 {String(round.cursor + 1).padStart(2, '0')} 题 · {difficultyLabels[classifyWord(round.deck[round.cursor])]}</p><h1 key={round.cursor}>{round.deck[round.cursor]}</h1><p>心领神会，就在此刻</p></section>
       <div className="verdicts">{(['foul', 'skip', 'correct'] as const).map((verdict, index) => <div key={verdict}><button className={`verdict ${verdict}`} onClick={event => { answer(verdict); event.currentTarget.blur(); }}><span className="symbol">{['×', '»', '✓'][index]}</span>{labels[verdict]}<kbd>{['←', '↓', '→'][index]}</kbd></button>{verdict !== 'correct' ? <p className={round[verdict] > round.settings[verdict === 'foul' ? 'fouls' : 'skips'] ? 'danger' : ''}>{round[verdict]} / {round.settings[verdict === 'foul' ? 'fouls' : 'skips']} 次{round[verdict] >= round.settings[verdict === 'foul' ? 'fouls' : 'skips'] && ' · 可继续'}</p> : <p>答对计 1 分</p>}</div>)}</div>
       <p className="keyboard-note">支持键盘 ← 犯规 · ↓ 跳过 · → 答对</p>
       {error && <p className="error" role="alert">{error}</p>}
