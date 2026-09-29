@@ -7,7 +7,7 @@ export function IdiomInfo({ word, compact = false }: { word: string; compact?: b
     {entry?.relatedWord && entry.sourceWord !== word && <p className="related-idiom">参照词条：{entry.relatedWord}<span>以下为该词条的释义</span></p>}
     <p className="explanation">{entry?.explanation || '暂未收录释义'}</p>
     {entry?.status === 'generated' && <p className="generated-note">补充释义，待核对</p>}
-    {!!entry?.origins.length && <details className="origins"><summary>出处 / 典故 <span>{entry.origins.length > 1 ? `${entry.origins.length} 项` : '展开'}</span></summary><div className="origin-list">{entry.origins.map((origin, index) => <div key={index}>
+    {!!entry?.origins.length && <details className="origins" open><summary>出处 / 典故 <span>{entry.origins.length > 1 ? `${entry.origins.length} 项` : ''}</span></summary><div className="origin-list">{entry.origins.map((origin, index) => <div key={index}>
       {origin.referenceWord && <p className="origin-reference">参照「{origin.referenceWord}」的出处</p>}
       {origin.note && <p className="origin-reference">{origin.note}</p>}
       <p>{originDisplayText(origin)}</p>

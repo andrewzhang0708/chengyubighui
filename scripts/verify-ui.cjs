@@ -51,6 +51,7 @@ async function assertMeaning() {
   const word = await evaluate(`document.querySelector('.word-stage h1').textContent`);
   const meaning = await evaluate(`document.querySelector('.explanation').textContent`);
   assert.equal(meaning, entries.get(word)?.explanation || '暂未收录释义');
+  if (entries.get(word)?.origins.length) assert.equal(await evaluate(`document.querySelector('.origins').open`), true);
   return word;
 }
 async function assertNoOverflow() {
@@ -109,9 +110,12 @@ app.whenReady().then(async () => {
   assert.notEqual(second, first);
   checkpoints.push('next card updates meaning');
   if (await evaluate(`!!document.querySelector('.origins')`)) {
+    assert.ok(await evaluate(`document.querySelector('.origin-list').textContent.length > 10`));
+    await click('.origins summary');
+    await waitFor(`!document.querySelector('.origins')?.open`);
     await click('.origins summary');
     await waitFor(`document.querySelector('.origins')?.open`);
-    assert.ok(await evaluate(`document.querySelector('.origin-list').textContent.length > 10`));
+    checkpoints.push('origins default open and can be collapsed');
   }
   window.setContentSize(390, 844);
   await assertNoOverflow();
