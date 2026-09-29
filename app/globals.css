@@ -234,7 +234,16 @@ kbd{font-size:12px;opacity:.65;border:1px solid currentColor;border-radius:3px;p
 }
 
 /* 释义与出处：与当前成语并排，窄屏移到下方。 */
-.meaning-toolbar{display:flex;justify-content:flex-end;align-items:center;gap:16px;margin-top:16px;color:var(--muted);font-size:11px}
+.meaning-toolbar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-top:16px;color:var(--muted);font-size:11px}
+.meaning-controls{display:flex;align-items:center;gap:16px;margin-left:auto}
+.competition-setting{border-top:1px dashed var(--line-strong);margin-top:24px;padding-top:20px}
+.competition-setting .hint{margin-top:10px}
+.competition-toggle{display:inline-flex;align-items:center;gap:10px;border:0;background:transparent;color:var(--ink-soft);font-size:12px;padding:8px 0}
+.switch-track{display:inline-flex;align-items:center;width:34px;height:20px;border:1px solid var(--line-strong);border-radius:12px;background:var(--line);padding:2px}
+.switch-track i{width:14px;height:14px;border-radius:50%;background:var(--paper-light);box-shadow:0 1px 3px #1f332c25;transition:transform .2s}
+.competition-toggle.active .switch-track{background:var(--pine);border-color:var(--pine)}
+.competition-toggle.active .switch-track i{transform:translateX(14px)}
+.switch-status{font-size:10px;color:var(--muted)}
 .meaning-toolbar .text-button{color:var(--pine)}
 .word-layout{margin-bottom:28px;min-width:0}
 .word-layout.with-meaning{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,320px);gap:28px;align-items:center}

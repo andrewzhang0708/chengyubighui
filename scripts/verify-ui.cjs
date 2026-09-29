@@ -58,6 +58,10 @@ async function assertNoOverflow() {
   if (dimensions.page > dimensions.viewport + 1) console.log(await evaluate(`Array.from(document.querySelectorAll('main *')).filter(element => element.getBoundingClientRect().right > innerWidth + 1).map(element => ({ tag: element.tagName, class: element.className, right: element.getBoundingClientRect().right, text: element.textContent.slice(0,80) })).slice(0,12)`));
   assert.ok(dimensions.page <= dimensions.viewport + 1, JSON.stringify(dimensions));
 }
+async function assertCompetitionHidden() {
+  await waitFor(`document.querySelector('.competition-toggle')?.getAttribute('aria-checked') === 'true'`);
+  assert.equal(await evaluate(`!!document.querySelector('.idiom-info, .explanation, .origins, .dictionary-credits, .meaning-toggle, .review-item')`), false);
+}
 
 app.whenReady().then(async () => {
   protocol.handle('chengyu', request => {
@@ -79,14 +83,23 @@ app.whenReady().then(async () => {
   await waitFor(`!!document.querySelector('input[aria-label="目标词数"]')`);
   await evaluate(`(() => { const input = document.querySelector('input[aria-label="目标词数"]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, '3'); input.dispatchEvent(new Event('input', { bubbles: true })); })()`);
   await upload(['萍水相逢', '走马观花', '辞旧迎新']);
+  assert.equal(await evaluate(`document.querySelector('.competition-toggle').getAttribute('aria-checked')`), 'false');
+  await click('.competition-toggle');
+  await assertCompetitionHidden();
   await click('.start-row .primary');
   await waitFor(`!!document.querySelector('.word-stage')`);
+  await assertCompetitionHidden();
+  const competitionWord = await evaluate(`document.querySelector('.word-stage h1').textContent`);
+  await click('.competition-toggle');
+  await waitFor(`!!document.querySelector('.explanation')`);
   const first = await assertMeaning();
+  assert.equal(first, competitionWord);
+  checkpoints.push('setup competition hides clues and restores preloaded meaning offline');
   await assertNoOverflow();
   await screenshot('desktop-game');
-  await click('.meaning-toolbar button');
+  await click('.meaning-toggle');
   await waitFor(`!document.querySelector('.word-layout .idiom-info')`);
-  await click('.meaning-toolbar button');
+  await click('.meaning-toggle');
   await waitFor(`!!document.querySelector('.word-layout .idiom-info')`);
   assert.equal(await assertMeaning(), first);
   checkpoints.push('default meaning and hide/show');
@@ -103,15 +116,33 @@ app.whenReady().then(async () => {
   window.setContentSize(390, 844);
   await assertNoOverflow();
   await screenshot('mobile-game');
+  await click('.competition-toggle');
+  await assertCompetitionHidden();
+  await assertNoOverflow();
+  await screenshot('mobile-competition');
   await click('.verdict.correct');
   await waitFor(`document.querySelector('.word-stage h1')?.textContent !== ${JSON.stringify(second)}`);
+  await assertCompetitionHidden();
+  const nextCompetitionWord = await evaluate(`document.querySelector('.word-stage h1').textContent`);
+  await click('.competition-toggle');
+  await waitFor(`!!document.querySelector('.explanation')`);
+  assert.equal(await assertMeaning(), nextCompetitionWord);
+  checkpoints.push('midgame competition preserves progress and restores next card');
   await assertMeaning();
+  await click('.meaning-toggle');
+  await waitFor(`!document.querySelector('.explanation')`);
   await click('.verdict.correct');
   await waitFor(`!!document.querySelector('.results')`);
   await click('.review-item summary');
   await waitFor(`!!document.querySelector('.review-item[open] .explanation')`);
   await assertNoOverflow();
   await screenshot('mobile-review');
+  await click('.competition-toggle');
+  await assertCompetitionHidden();
+  await assertNoOverflow();
+  await click('.competition-toggle');
+  await waitFor(`!!document.querySelector('.review-item')`);
+  checkpoints.push('competition hides results meanings and origins');
   checkpoints.push('mobile layout and expandable results');
   window.setContentSize(1200, 820);
   await click('.result-actions .secondary');
@@ -119,6 +150,8 @@ app.whenReady().then(async () => {
   await upload(['辞旧迎新', '未收录词', '萍水相逢']);
   await click('.start-row .primary');
   await waitFor(`!!document.querySelector('.word-stage')`);
+  await waitFor(`!!document.querySelector('.explanation')`);
+  checkpoints.push('new round defaults to expanded meaning after previous manual hiding');
   const visited = [];
   for (let i = 0; i < 3; i++) {
     const word = await assertMeaning();

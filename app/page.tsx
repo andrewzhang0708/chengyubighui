@@ -22,6 +22,12 @@ const presets: { name: string; ratios: DifficultyRatios }[] = [
   { name: '烧脑', ratios: { easy: 20, medium: 40, hard: 40 } },
 ];
 
+function CompetitionToggle({ enabled, onChange }: { enabled: boolean; onChange: (enabled: boolean) => void }) {
+  return <button type="button" role="switch" aria-label="竞赛模式" aria-checked={enabled} className={`competition-toggle ${enabled ? 'active' : ''}`} onClick={() => onChange(!enabled)}>
+    <span>竞赛模式</span><span className="switch-track" aria-hidden="true"><i/></span><span className="switch-status">{enabled ? '已开启' : '已关闭'}</span>
+  </button>;
+}
+
 export default function Home() {
   const [screen, setScreen] = useState<'home' | 'setup' | 'game'>('home');
   const [mode, setMode] = useState<Mode>('time');
@@ -37,6 +43,7 @@ export default function Home() {
   const [exitOpen, setExitOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showMeaning, setShowMeaning] = useState(true);
+  const [competitionMode, setCompetitionMode] = useState(false);
   const uploadId = useRef(0);
   const endButton = useRef<HTMLButtonElement>(null);
   const running = screen === 'game' && round !== null && round.endedAt === null;
@@ -97,6 +104,7 @@ export default function Home() {
     const message = validateSettings(mode, settings, counts);
     if (message) { setError(message); return; }
     const time = performance.now();
+    setShowMeaning(true);
     setRound(createRound(mode, settings, words, time, classify));
     setNow(time); setScreen('game'); setError(''); setExitOpen(false);
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
@@ -165,6 +173,7 @@ export default function Home() {
             <label className="field"><span>{mode === 'time' ? '挑战时间' : '目标词数'}</span><div><input aria-label={mode === 'time' ? '挑战时间' : '目标词数'} type="number" required min="1" max={mode === 'time' ? 86400 : 9999} step="1" value={Number.isNaN(settings[mode === 'time' ? 'seconds' : 'target']) ? '' : settings[mode === 'time' ? 'seconds' : 'target']} onChange={event => setSettings({ ...settings, [mode === 'time' ? 'seconds' : 'target']: event.target.valueAsNumber })}/><span>{mode === 'time' ? '秒' : '个'}</span></div></label>
             {(['fouls', 'skips'] as const).map((key) => <label className="field" key={key}><span>{key === 'fouls' ? '犯规参考次数' : '跳过参考次数'}</span><div><input aria-label={key === 'fouls' ? '犯规参考次数' : '跳过参考次数'} type="number" required min="0" max="9999" step="1" value={Number.isNaN(settings[key]) ? '' : settings[key]} onChange={event => setSettings({ ...settings, [key]: event.target.valueAsNumber })}/><span>次</span></div></label>)}
             <p className="hint">犯规与跳过仅计次，达到参考次数也可以继续。</p>
+            <div className="competition-setting"><CompetitionToggle enabled={competitionMode} onChange={setCompetitionMode}/><p className="hint">开启后隐藏释义和出处，比赛中可随时切换。</p></div>
             <div className="difficulty">
               <h3>难度比例</h3>
               <div className="presets">{presets.map(preset => <button type="button" key={preset.name} className={`preset ${levels.every(level => settings.ratios[level] === preset.ratios[level]) ? 'active' : ''}`} onClick={() => setSettings({ ...settings, ratios: { ...preset.ratios } })}>{preset.name}<span>{levels.map(level => preset.ratios[level]).join(' / ')}</span></button>)}</div>
@@ -184,10 +193,10 @@ export default function Home() {
       <div className="game-heading"><span className="eyebrow">{title} / 挑战进行中</span><div className="game-actions"><button className="exit-button" onClick={exitToSetup}>← 退出本轮</button><button ref={endButton} className="text-button" onClick={() => setExitOpen(true)}>结束并结算</button></div></div>
       <div className="scoreboard"><div className={round.mode === 'time' && timeLeft <= 10000 ? 'danger' : ''}><span>{round.mode === 'time' ? '剩余时间' : '已用时间'}</span><strong>{formatTime(round.mode === 'time' ? timeLeft : duration, round.mode === 'time')}</strong></div><div className="score"><span>已答对</span><strong>{round.correct}{round.mode === 'word' && <small> / {round.settings.target}</small>}</strong></div></div>
       <div className={`progress ${round.mode === 'time' && timeLeft <= 10000 ? 'danger' : ''}`} aria-hidden="true"><span style={{ width: `${progress * 100}%` }}/></div>
-      <div className="meaning-toolbar"><span>给描述者的小提示</span><button type="button" className="text-button" aria-pressed={showMeaning} onClick={() => setShowMeaning(value => !value)}>{showMeaning ? '隐藏释义' : '显示释义'}</button></div>
-      <div className={`word-layout ${showMeaning ? 'with-meaning' : ''}`}>
+      <div className="meaning-toolbar"><CompetitionToggle enabled={competitionMode} onChange={setCompetitionMode}/>{!competitionMode && <div className="meaning-controls"><span>给描述者的小提示</span><button type="button" className="text-button meaning-toggle" aria-pressed={showMeaning} onClick={() => setShowMeaning(value => !value)}>{showMeaning ? '隐藏释义' : '显示释义'}</button></div>}</div>
+      <div className={`word-layout ${!competitionMode && showMeaning ? 'with-meaning' : ''}`}>
         <section className="word-stage" aria-label="当前成语"><p className="word-number">第 {String(round.cursor + 1).padStart(2, '0')} 题 <i className={`level ${round.deck[round.cursor].level}`}>{difficultyLabels[round.deck[round.cursor].level]}</i></p><h1 key={round.cursor}>{[...round.deck[round.cursor].word].map((char, index) => <span key={index} style={{ animationDelay: `${index * 50}ms` }}>{char}</span>)}</h1><p>心领神会，就在此刻</p></section>
-        {showMeaning && <IdiomInfo key={round.deck[round.cursor].word} word={round.deck[round.cursor].word}/>}
+        {!competitionMode && showMeaning && <IdiomInfo key={round.deck[round.cursor].word} word={round.deck[round.cursor].word}/>}
       </div>
       <div className="verdicts">{(['foul', 'skip', 'correct'] as const).map((verdict, index) => <div key={verdict}><button className={`verdict ${verdict}`} onClick={event => { answer(verdict); event.currentTarget.blur(); }}><span className="symbol">{['×', '»', '✓'][index]}</span>{labels[verdict]}<kbd>{['←', '↓', '→'][index]}</kbd></button>{verdict !== 'correct' ? <p className={round[verdict] > round.settings[verdict === 'foul' ? 'fouls' : 'skips'] ? 'danger' : ''}>{round[verdict]} / {round.settings[verdict === 'foul' ? 'fouls' : 'skips']} 次{round[verdict] >= round.settings[verdict === 'foul' ? 'fouls' : 'skips'] && ' · 可继续'}</p> : <p>答对计 1 分</p>}</div>)}</div>
       <p className="keyboard-note">支持键盘 ← 犯规 · ↓ 跳过 · → 答对</p>
@@ -195,19 +204,20 @@ export default function Home() {
     </>}
 
     {screen === 'game' && round && result && <section className="results">
+      <div className="meaning-toolbar"><CompetitionToggle enabled={competitionMode} onChange={setCompetitionMode}/></div>
       <div className="results-head"><div><p className="eyebrow">{title} / 本轮回顾</p><h1>{round.reason}</h1><p>每一次心领神会，都值得再来一局。</p></div>{stamp && <div className="stamp" aria-label={`评价：${stamp.note}`}><b>{stamp.mark}</b><span>{stamp.note}</span></div>}</div>
       <div className="result-stats"><div><strong>{round.correct}</strong><span>答对成语{round.mode === 'word' ? ` / 目标 ${round.settings.target}` : ''}</span></div><div><strong>{formatTime(duration)}</strong><span>本轮用时</span></div><div><strong>{round.foul} <small>/</small> {round.skip}</strong><span>犯规 / 跳过</span></div></div>
       <div className="result-actions"><button className="primary" onClick={start}>再来一局 ↗</button><button className="secondary" onClick={() => { setScreen('setup'); setError(''); }}>调整设置</button><button className="text-button" onClick={() => setScreen('home')}>返回首页</button></div>
       <section className="review"><h2>本轮成语 <span>{round.history.length} 题已判定 · {levels.filter(level => round.history.some(entry => entry.level === level)).map(level => `${levelMarks[level]} ${round.history.filter(entry => entry.level === level && entry.verdict === 'correct').length}/${round.history.filter(entry => entry.level === level).length}`).join(' · ')}</span></h2>
-        {round.history.length ? <div className="review-list">{round.history.map((entry, index) => <details className="review-item" key={index}>
-          <summary><span className="review-index">{String(index + 1).padStart(2, '0')}</span><strong>{entry.word}</strong><i className={`level ${entry.level}`}>{levelMarks[entry.level]}</i><span className={`tag ${entry.verdict}`}>{labels[entry.verdict]}</span></summary>
-          <IdiomInfo word={entry.word} compact/>
-        </details>)}</div> : <p className="hint">本轮还没有判定成语。</p>}
+        {round.history.length ? <div className="review-list">{round.history.map((entry, index) => {
+          const label = <><span className="review-index">{String(index + 1).padStart(2, '0')}</span><strong>{entry.word}</strong><i className={`level ${entry.level}`}>{levelMarks[entry.level]}</i><span className={`tag ${entry.verdict}`}>{labels[entry.verdict]}</span></>;
+          return competitionMode ? <div key={index}>{label}</div> : <details className="review-item" key={index}><summary>{label}</summary><IdiomInfo word={entry.word} compact/></details>;
+        })}</div> : <p className="hint">本轮还没有判定成语。</p>}
         {round.cursor < round.deck.length && (round.mode !== 'word' || round.correct < round.settings.target) && <p className="hint">未判定：{round.deck[round.cursor].word}（不计入成绩）</p>}
       </section>
     </section>}
 
-    <DictionaryCredits/>
+    {!competitionMode && <DictionaryCredits/>}
     <footer>一人描述 · 一人猜词 · 一人判定 <span>让成语成为相聚的理由</span></footer>
     {exitOpen && running && <div className="modal-backdrop" onKeyDown={event => { if (event.key === 'Escape') { setExitOpen(false); endButton.current?.focus(); } if (event.key === 'Tab') { const elements = event.currentTarget.querySelectorAll<HTMLButtonElement>('button'); const first = elements[0], last = elements[elements.length - 1]; if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); } else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); } } }}><section className="modal" role="dialog" aria-modal="true" aria-labelledby="exit-title"><h2 id="exit-title">结束这一轮？</h2><p>将保留本轮成绩并进入结算。确认期间计时继续。</p><div><button autoFocus className="secondary" onClick={() => { setExitOpen(false); endButton.current?.focus(); }}>继续挑战</button><button className="primary" onClick={() => { const time = performance.now(); setRound(current => current ? finish(tick(current, time), time, '本轮挑战已结束') : current); setNow(time); setExitOpen(false); }}>结束并结算</button></div></section></div>}
   </main>;
