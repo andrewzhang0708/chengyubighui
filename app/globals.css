@@ -232,3 +232,55 @@ kbd{font-size:12px;opacity:.65;border:1px solid currentColor;border-radius:3px;p
   .modal .primary,.modal .secondary{padding:12px 18px}
   .playing footer{margin-top:42px}
 }
+
+/* 释义与出处：与当前成语并排，窄屏移到下方。 */
+.meaning-toolbar{display:flex;justify-content:flex-end;align-items:center;gap:16px;margin-top:16px;color:var(--muted);font-size:11px}
+.meaning-toolbar .text-button{color:var(--pine)}
+.word-layout{margin-bottom:28px;min-width:0}
+.word-layout.with-meaning{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,320px);gap:28px;align-items:center}
+.with-meaning .word-stage{--tile:clamp(72px,9vw,130px);padding:24px 0;min-width:0}
+.idiom-info{min-width:0;background:#faf6eed9;border:1px solid var(--line-strong);border-top:3px solid var(--pine);border-radius:3px;padding:24px;max-height:420px;overflow:auto;overflow-wrap:anywhere}
+.info-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:16px;border-bottom:1px solid var(--line);margin-bottom:16px}
+.info-heading .eyebrow{font-size:10px;letter-spacing:2px}
+.info-heading h2{font-family:var(--brush);font-size:23px;font-weight:500;letter-spacing:3px}
+.explanation{font-size:15px;line-height:1.9;white-space:pre-line;color:var(--ink-soft)}
+.related-idiom,.origin-reference,.generated-note{font-size:11px;line-height:1.8;color:var(--ochre);margin-bottom:12px}
+.related-idiom span{display:block;color:var(--muted)}
+.generated-note{margin:12px 0 0}
+.origins{margin-top:20px;border-top:1px dashed var(--line-strong);padding-top:16px}
+summary{cursor:pointer;list-style-position:inside}
+summary:focus-visible{outline:3px solid #b97737;outline-offset:4px}
+.origins summary{font-size:13px;color:var(--ink);letter-spacing:1px}
+.origins summary span{float:right;color:var(--muted);font-size:10px;letter-spacing:0}
+.origin-list>div{margin-top:14px;font-size:13px;line-height:1.85;white-space:pre-line}
+.origin-list>div+div{border-top:1px dashed var(--line);padding-top:14px}
+.source-credit{font-size:10px!important;color:var(--muted);line-height:1.8;margin-top:10px}
+.source-address{display:block;overflow-wrap:anywhere;font-family:inherit;font-size:10px;color:var(--muted)}
+.entry-source{margin-top:16px;font-size:10px;color:var(--muted)}
+.dictionary-credits{margin-top:28px;font-size:11px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+.dictionary-credits>div{max-height:260px;overflow:auto;margin-top:12px;line-height:1.9}
+.dictionary-credits p{margin-bottom:14px}
+.dictionary-credits strong,.dictionary-credits span{display:block}
+.dictionary-credits strong{font-weight:500;color:var(--ink-soft)}
+.review-item{min-width:0;border-bottom:1px dashed var(--line);padding:14px 0}
+.review-item>summary{display:flex;align-items:center;gap:12px;min-height:32px}
+.review-item>summary::before{content:'▸';font-size:10px;color:var(--muted)}
+.review-item[open]>summary::before{content:'▾'}
+.review-item .idiom-info{margin:12px 0 4px;max-height:300px;padding:18px}
+.results{overflow-x:clip}
+.compact .info-heading{display:none}
+.compact .explanation{font-size:13px}
+@media(max-width:900px){
+  .word-layout.with-meaning{grid-template-columns:1fr;gap:8px}
+  .with-meaning .word-stage{--tile:clamp(72px,12vw,140px);padding:24px 0}
+  .idiom-info{max-height:300px}
+}
+@media(max-width:650px){
+  .meaning-toolbar{margin-top:10px}
+  .with-meaning .word-stage{--tile:min(84px,calc((100vw - 70px)/4));padding:24px 0}
+  .idiom-info{padding:18px;max-height:270px}
+  .explanation{font-size:14px}
+  .info-heading{padding-bottom:12px;margin-bottom:12px}
+  .word-layout{margin-bottom:22px}
+  .review-item strong{letter-spacing:2px}
+}

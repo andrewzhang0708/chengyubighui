@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { builtinLevel, builtinLibrary } from '../lib/idioms';
+import { DictionaryCredits, IdiomInfo } from './idiom-info';
 import { createRound, defaultRatios, elapsed, finish, formatTime, judge, levelCounts, levels, parseWords, tick, validateSettings, type Classifier, type Difficulty, type DifficultyRatios, type Mode, type Round, type Settings, type Verdict } from '../lib/game';
 
 const initialSettings: Settings = { target: 10, seconds: 120, fouls: 3, skips: 3, ratios: defaultRatios };
@@ -35,6 +36,7 @@ export default function Home() {
   const [now, setNow] = useState(0);
   const [exitOpen, setExitOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showMeaning, setShowMeaning] = useState(true);
   const uploadId = useRef(0);
   const endButton = useRef<HTMLButtonElement>(null);
   const running = screen === 'game' && round !== null && round.endedAt === null;
@@ -182,7 +184,11 @@ export default function Home() {
       <div className="game-heading"><span className="eyebrow">{title} / 挑战进行中</span><div className="game-actions"><button className="exit-button" onClick={exitToSetup}>← 退出本轮</button><button ref={endButton} className="text-button" onClick={() => setExitOpen(true)}>结束并结算</button></div></div>
       <div className="scoreboard"><div className={round.mode === 'time' && timeLeft <= 10000 ? 'danger' : ''}><span>{round.mode === 'time' ? '剩余时间' : '已用时间'}</span><strong>{formatTime(round.mode === 'time' ? timeLeft : duration, round.mode === 'time')}</strong></div><div className="score"><span>已答对</span><strong>{round.correct}{round.mode === 'word' && <small> / {round.settings.target}</small>}</strong></div></div>
       <div className={`progress ${round.mode === 'time' && timeLeft <= 10000 ? 'danger' : ''}`} aria-hidden="true"><span style={{ width: `${progress * 100}%` }}/></div>
-      <section className="word-stage" aria-label="当前成语"><p className="word-number">第 {String(round.cursor + 1).padStart(2, '0')} 题 <i className={`level ${round.deck[round.cursor].level}`}>{difficultyLabels[round.deck[round.cursor].level]}</i></p><h1 key={round.cursor}>{[...round.deck[round.cursor].word].map((char, index) => <span key={index} style={{ animationDelay: `${index * 50}ms` }}>{char}</span>)}</h1><p>心领神会，就在此刻</p></section>
+      <div className="meaning-toolbar"><span>给描述者的小提示</span><button type="button" className="text-button" aria-pressed={showMeaning} onClick={() => setShowMeaning(value => !value)}>{showMeaning ? '隐藏释义' : '显示释义'}</button></div>
+      <div className={`word-layout ${showMeaning ? 'with-meaning' : ''}`}>
+        <section className="word-stage" aria-label="当前成语"><p className="word-number">第 {String(round.cursor + 1).padStart(2, '0')} 题 <i className={`level ${round.deck[round.cursor].level}`}>{difficultyLabels[round.deck[round.cursor].level]}</i></p><h1 key={round.cursor}>{[...round.deck[round.cursor].word].map((char, index) => <span key={index} style={{ animationDelay: `${index * 50}ms` }}>{char}</span>)}</h1><p>心领神会，就在此刻</p></section>
+        {showMeaning && <IdiomInfo key={round.deck[round.cursor].word} word={round.deck[round.cursor].word}/>}
+      </div>
       <div className="verdicts">{(['foul', 'skip', 'correct'] as const).map((verdict, index) => <div key={verdict}><button className={`verdict ${verdict}`} onClick={event => { answer(verdict); event.currentTarget.blur(); }}><span className="symbol">{['×', '»', '✓'][index]}</span>{labels[verdict]}<kbd>{['←', '↓', '→'][index]}</kbd></button>{verdict !== 'correct' ? <p className={round[verdict] > round.settings[verdict === 'foul' ? 'fouls' : 'skips'] ? 'danger' : ''}>{round[verdict]} / {round.settings[verdict === 'foul' ? 'fouls' : 'skips']} 次{round[verdict] >= round.settings[verdict === 'foul' ? 'fouls' : 'skips'] && ' · 可继续'}</p> : <p>答对计 1 分</p>}</div>)}</div>
       <p className="keyboard-note">支持键盘 ← 犯规 · ↓ 跳过 · → 答对</p>
       {error && <p className="error" role="alert">{error}</p>}
@@ -192,9 +198,16 @@ export default function Home() {
       <div className="results-head"><div><p className="eyebrow">{title} / 本轮回顾</p><h1>{round.reason}</h1><p>每一次心领神会，都值得再来一局。</p></div>{stamp && <div className="stamp" aria-label={`评价：${stamp.note}`}><b>{stamp.mark}</b><span>{stamp.note}</span></div>}</div>
       <div className="result-stats"><div><strong>{round.correct}</strong><span>答对成语{round.mode === 'word' ? ` / 目标 ${round.settings.target}` : ''}</span></div><div><strong>{formatTime(duration)}</strong><span>本轮用时</span></div><div><strong>{round.foul} <small>/</small> {round.skip}</strong><span>犯规 / 跳过</span></div></div>
       <div className="result-actions"><button className="primary" onClick={start}>再来一局 ↗</button><button className="secondary" onClick={() => { setScreen('setup'); setError(''); }}>调整设置</button><button className="text-button" onClick={() => setScreen('home')}>返回首页</button></div>
-      <section className="review"><h2>本轮成语 <span>{round.history.length} 题已判定 · {levels.filter(level => round.history.some(entry => entry.level === level)).map(level => `${levelMarks[level]} ${round.history.filter(entry => entry.level === level && entry.verdict === 'correct').length}/${round.history.filter(entry => entry.level === level).length}`).join(' · ')}</span></h2>{round.history.length ? <div className="review-list">{round.history.map((entry, index) => <div key={index}><span className="review-index">{String(index + 1).padStart(2, '0')}</span><strong>{entry.word}</strong><i className={`level ${entry.level}`}>{levelMarks[entry.level]}</i><span className={`tag ${entry.verdict}`}>{labels[entry.verdict]}</span></div>)}</div> : <p className="hint">本轮还没有判定成语。</p>}{round.cursor < round.deck.length && (round.mode !== 'word' || round.correct < round.settings.target) && <p className="hint">未判定：{round.deck[round.cursor].word}（不计入成绩）</p>}</section>
+      <section className="review"><h2>本轮成语 <span>{round.history.length} 题已判定 · {levels.filter(level => round.history.some(entry => entry.level === level)).map(level => `${levelMarks[level]} ${round.history.filter(entry => entry.level === level && entry.verdict === 'correct').length}/${round.history.filter(entry => entry.level === level).length}`).join(' · ')}</span></h2>
+        {round.history.length ? <div className="review-list">{round.history.map((entry, index) => <details className="review-item" key={index}>
+          <summary><span className="review-index">{String(index + 1).padStart(2, '0')}</span><strong>{entry.word}</strong><i className={`level ${entry.level}`}>{levelMarks[entry.level]}</i><span className={`tag ${entry.verdict}`}>{labels[entry.verdict]}</span></summary>
+          <IdiomInfo word={entry.word} compact/>
+        </details>)}</div> : <p className="hint">本轮还没有判定成语。</p>}
+        {round.cursor < round.deck.length && (round.mode !== 'word' || round.correct < round.settings.target) && <p className="hint">未判定：{round.deck[round.cursor].word}（不计入成绩）</p>}
+      </section>
     </section>}
 
+    <DictionaryCredits/>
     <footer>一人描述 · 一人猜词 · 一人判定 <span>让成语成为相聚的理由</span></footer>
     {exitOpen && running && <div className="modal-backdrop" onKeyDown={event => { if (event.key === 'Escape') { setExitOpen(false); endButton.current?.focus(); } if (event.key === 'Tab') { const elements = event.currentTarget.querySelectorAll<HTMLButtonElement>('button'); const first = elements[0], last = elements[elements.length - 1]; if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); } else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); } } }}><section className="modal" role="dialog" aria-modal="true" aria-labelledby="exit-title"><h2 id="exit-title">结束这一轮？</h2><p>将保留本轮成绩并进入结算。确认期间计时继续。</p><div><button autoFocus className="secondary" onClick={() => { setExitOpen(false); endButton.current?.focus(); }}>继续挑战</button><button className="primary" onClick={() => { const time = performance.now(); setRound(current => current ? finish(tick(current, time), time, '本轮挑战已结束') : current); setNow(time); setExitOpen(false); }}>结束并结算</button></div></section></div>}
   </main>;

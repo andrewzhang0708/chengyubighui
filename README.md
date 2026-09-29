@@ -44,6 +44,10 @@ npm.cmd run desktop:package
 
 ## 题库
 
+游戏页面在当前成语旁显示释义，可随时隐藏／显示；手机上移到成语下方。出处和典故独立折叠展示，结算回顾中点击成语可再次查看。释义、出处随题目同步切换，网页与桌面版均读取本地标注数据，不在游戏中请求词典或调用模型。导入 TXT 的词条也会查询本地释义，未收录时显示「暂未收录释义」。
+
+标注副本位于 `data/idioms copy.json`，来源和生成流程见 [data/IDIOM_SOURCES.md](data/IDIOM_SOURCES.md)。更新题库后运行 `npm.cmd run idioms:download` 和 `npm.cmd run idioms:enrich`。LLM 补充释义标有待核对，没有可靠出处的条目不补写出处。
+
 内置题库按难度分层存放在 `data/idioms.json`（`easy` / `medium` / `hard`）。它由原 `default.txt` 词表逐词分级整理而来：去掉了明显不是成语的四字词（新闻、公文、法律术语、作品名等）和异形误写（保留标准写法），并补充了一批适合比划猜词的典故和生动成语。被去掉的词及原因记录在 `data/removed.json`，需要时可移回 `idioms.json` 对应难度中。
 
 上传 TXT 仅在浏览器内存中读取，刷新后恢复默认；不会发送到服务器。支持 UTF-8 / UTF-8 BOM，非 UTF-8 文件尝试以 GB18030 解码。每行可为：一个成语；「成语 + 空白 + 难度」（难度写 上/中/下、难/中/易 或 hard/medium/easy）；或「成语 + 空白 + 频次」。未标注难度的词按内置题库分级，内置题库也没有的按「中」处理。仅保留四个汉字的词条并去重。文件上限 5 MB。
@@ -51,7 +55,7 @@ npm.cmd run desktop:package
 ## 检查和构建
 
 ```powershell
-node --test tests/game.test.mjs
+npm.cmd test
 npm.cmd exec tsc -- --noEmit
 npm.cmd run build
 ```
