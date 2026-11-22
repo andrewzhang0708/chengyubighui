@@ -32,7 +32,7 @@ app.whenReady().then(async () => {
   await waitFor(`!!document.querySelector('.filter-library-button')`);
   await click('.filter-library-button');
   await waitFor(`!!document.querySelector('.filter-verdicts')`);
-  assert.equal(await run(`document.querySelector('.filter-library-name').textContent`), '内置题库副本.txt');
+  assert.equal(await run(`document.querySelector('.filter-library-name').textContent`), '常用竞猜题库副本.txt');
   assert.equal(await run(`!!document.querySelector('.scoreboard, .progress, .word-number .count')`), false);
   const levels = { easy: 0, medium: 0, hard: 0 };
   for (let i = 0; i < 10; i++) {
@@ -59,10 +59,10 @@ app.whenReady().then(async () => {
   const content = fs.readFileSync(file, 'utf8');
   assert.ok(!content.includes(rejected));
   assert.ok(content.includes(retained));
-  const originalCount = Object.values(JSON.parse(fs.readFileSync('data/idioms.json', 'utf8'))).flat().length;
+  const originalCount = Object.values(JSON.parse(fs.readFileSync('data/idioms-common.json', 'utf8'))).flat().length;
   assert.equal(content.trim().split(/\r?\n/).length, originalCount - 1);
   await click('.library>.text-button');
-  assert.equal(await run(`document.querySelector('.library>strong').textContent`), '内置题库');
+  assert.equal(await run(`document.querySelector('.library>strong').textContent`), '常用竞猜题库');
   // Imported files keep their own name; finishing with no retained words exports an empty TXT.
   await run(`(() => { const input = document.querySelector('input[type=file]'); const data = new DataTransfer(); data.items.add(new File(['一心一意 下'], 'custom.txt', {type:'text/plain'})); input.files = data.files; input.dispatchEvent(new Event('change', {bubbles:true})); })()`);
   await waitFor(`document.querySelector('.library>strong').textContent === 'custom.txt'`);

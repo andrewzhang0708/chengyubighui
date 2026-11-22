@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { builtinLevel, builtinLibrary } from '../lib/idioms';
+import { builtinLevel, builtinLibrary, builtinLibraryName } from '../lib/idioms';
 import { DictionaryCredits, IdiomInfo } from './idiom-info';
 import { LibraryFilter } from './library-filter';
 import { filteredFilename, serializeLibrary } from '../lib/library-filter';
@@ -36,7 +36,7 @@ export default function Home() {
   const [settings, setSettings] = useState(initialSettings);
   const [words, setWords] = useState(builtinLibrary);
   const [marked, setMarked] = useState<Map<string, Difficulty>>(() => new Map());
-  const [library, setLibrary] = useState('内置题库');
+  const [library, setLibrary] = useState(builtinLibraryName);
   const [isDefaultLibrary, setIsDefaultLibrary] = useState(true);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
@@ -138,12 +138,12 @@ export default function Home() {
 
   function resetLibrary() {
     setIsDefaultLibrary(true);
-    uploadId.current++; setReading(false); setWords(builtinLibrary); setMarked(new Map()); setLibrary('内置题库'); setNotice('已恢复默认题库。'); setError('');
+    uploadId.current++; setReading(false); setWords(builtinLibrary); setMarked(new Map()); setLibrary(builtinLibraryName); setNotice('已恢复默认题库。'); setError('');
   }
 
   function startFilter() {
     if (isDefaultLibrary) {
-      setWords([...words]); setLibrary('内置题库副本.txt'); setIsDefaultLibrary(false);
+      setWords([...words]); setLibrary(`${builtinLibraryName}副本.txt`); setIsDefaultLibrary(false);
     }
     setError(''); setNotice(''); setScreen('filter');
   }

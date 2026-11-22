@@ -1,10 +1,12 @@
 import idioms from '../data/idioms.json';
+import commonIdioms from '../data/idioms-common.json';
 import { levels, type Difficulty } from './game';
 
-// 内置题库按难度分层存放在 data/idioms.json；导入的 TXT 中未标注难度的词也按这里查询，查不到按「中」处理。
+// 默认使用常用竞猜版；完整词库保留，用于导入 TXT 时查询难度。
 const builtinLevels = new Map<string, Difficulty>(levels.flatMap(level => idioms[level].map(word => [word, level] as const)));
 
-export const builtinLibrary = [...builtinLevels.keys()];
+export const builtinLibrary = levels.flatMap(level => commonIdioms[level]);
+export const builtinLibraryName = '常用竞猜题库';
 
 export function builtinLevel(word: string) {
   return builtinLevels.get(word);

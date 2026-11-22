@@ -48,7 +48,11 @@ npm.cmd run desktop:package
 
 标注副本位于 `data/idioms copy.json`，来源和生成流程见 [data/IDIOM_SOURCES.md](data/IDIOM_SOURCES.md)。更新题库后运行 `npm.cmd run idioms:download` 和 `npm.cmd run idioms:enrich`。LLM 补充释义标有待核对，没有可靠出处的条目不补写出处。
 
-内置题库按难度分层存放在 `data/idioms.json`（`easy` / `medium` / `hard`）。它由原 `default.txt` 词表逐词分级整理而来：去掉了明显不是成语的四字词（新闻、公文、法律术语、作品名等）和异形误写（保留标准写法），并补充了一批适合比划猜词的典故和生动成语。被去掉的词及原因记录在 `data/removed.json`，需要时可移回 `idioms.json` 对应难度中。
+默认使用 `data/idioms-common.json` 中的 **8,928 词常用竞猜题库**：简单 1,872、中等 5,717、困难 1,339。以清华 THUOCL 成语词库为主要依据，结合 JioNLP 文档频率、jieba 词频补充，排除 `data/removed.json` 中的术语和异形词、缺少词典释义的词以及依赖长句的截取片段。选题参考[央视对《中国成语大会》选题标准的介绍](https://1118.cctv.com/2014/05/16/ARTI1400206078537398.shtml)，兼顾常见表达和典故挑战，**非央视官方题库**。规则、来源、逐词频率见 `data/idiom-common-report.json`，可离线执行 `npm.cmd run idioms:common` 重现。常用度不等于描述竞猜难度，仍可使用筛选功能自行调整。
+
+完整的 **47,150 词**仍保存在 `data/idioms.json`，并为导入 TXT 提供难度查询和释义。原有词保留分级，新增词按词频和生僻字惩罚进行确定性分级（`npm.cmd run idioms:classify`）。本地 `libraries/` 目录保存了完整题库 TXT、JSON、含全部释义的 ZIP，以及常用版 TXT 和含释义 JSON；TXT 可直接导入应用。完整题库不因切换默认题库被删除。
+
+“筛选题库”按简单 20%、中等 30%、困难 50% 随机展示，不计时、不计数。默认题库先复制；退出时将保留词和未筛选词下载为原文件名加时间戳的 TXT，并保留难度标记。
 
 上传 TXT 仅在浏览器内存中读取，刷新后恢复默认；不会发送到服务器。支持 UTF-8 / UTF-8 BOM，非 UTF-8 文件尝试以 GB18030 解码。每行可为：一个成语；「成语 + 空白 + 难度」（难度写 上/中/下、难/中/易 或 hard/medium/easy）；或「成语 + 空白 + 频次」。未标注难度的词按内置题库分级，内置题库也没有的按「中」处理。仅保留四个汉字的词条并去重。文件上限 5 MB。
 
