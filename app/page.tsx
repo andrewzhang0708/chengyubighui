@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { builtinLevel, builtinLibrary } from '../lib/idioms';
 import { DictionaryCredits, IdiomInfo } from './idiom-info';
+import { LibraryFilter } from './library-filter';
+import { filteredFilename, serializeLibrary } from '../lib/library-filter';
 import { createRound, defaultRatios, elapsed, finish, formatTime, judge, levelCounts, levels, parseWords, tick, validateSettings, type Classifier, type Difficulty, type DifficultyRatios, type Mode, type Round, type Settings, type Verdict } from '../lib/game';
 
 const initialSettings: Settings = { target: 10, seconds: 120, fouls: 3, skips: 3, ratios: defaultRatios };
@@ -29,12 +31,13 @@ function CompetitionToggle({ enabled, onChange }: { enabled: boolean; onChange: 
 }
 
 export default function Home() {
-  const [screen, setScreen] = useState<'home' | 'setup' | 'game'>('home');
+  const [screen, setScreen] = useState<'home' | 'setup' | 'game' | 'filter'>('home');
   const [mode, setMode] = useState<Mode>('time');
   const [settings, setSettings] = useState(initialSettings);
   const [words, setWords] = useState(builtinLibrary);
   const [marked, setMarked] = useState<Map<string, Difficulty>>(() => new Map());
   const [library, setLibrary] = useState('内置题库');
+  const [isDefaultLibrary, setIsDefaultLibrary] = useState(true);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [reading, setReading] = useState(false);
@@ -126,6 +129,7 @@ export default function Home() {
       if (!result.words.length) throw new Error('没有找到四字成语，请检查文件内容。原题库仍可使用。');
       const unknown = result.words.filter(word => !result.marked.has(word) && !builtinLevel(word)).length;
       setWords(result.words); setMarked(result.marked); setLibrary(file.name);
+      setIsDefaultLibrary(false);
       setNotice(`已导入 ${result.words.length} 个成语，忽略 ${result.invalid} 行非四字词，合并 ${result.duplicates} 个重复词。${unknown ? `其中 ${unknown} 个词未标注难度且不在内置题库中，按「中」处理。` : ''}`);
     } catch (cause) {
       if (request === uploadId.current) setError(cause instanceof Error ? cause.message : '读取题库失败，请重试。');
@@ -133,7 +137,27 @@ export default function Home() {
   }
 
   function resetLibrary() {
+    setIsDefaultLibrary(true);
     uploadId.current++; setReading(false); setWords(builtinLibrary); setMarked(new Map()); setLibrary('内置题库'); setNotice('已恢复默认题库。'); setError('');
+  }
+
+  function startFilter() {
+    if (isDefaultLibrary) {
+      setWords([...words]); setLibrary('内置题库副本.txt'); setIsDefaultLibrary(false);
+    }
+    setError(''); setNotice(''); setScreen('filter');
+  }
+
+  function saveFilteredLibrary() {
+    const filename = filteredFilename(library);
+    const url = URL.createObjectURL(new Blob([serializeLibrary(words, classify)], { type: 'text/plain;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url; link.download = filename;
+    document.body.appendChild(link); link.click(); link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setLibrary(filename);
+    setNotice(`已保存筛选后的题库：${filename}。可在浏览器下载记录中查看。`);
+    setScreen('setup');
   }
 
   async function fullscreen() {
@@ -149,11 +173,13 @@ export default function Home() {
   const progress = !round ? 0 : round.mode === 'time' ? timeLeft / (round.settings.seconds * 1000) : Math.min(1, round.correct / round.settings.target);
   const stamp = round && stamps.find(item => (round.history.length ? round.correct / round.history.length : 0) >= item.min)!;
 
-  return <main className={`shell ${screen === 'game' ? 'playing' : ''}`}>
+  return <main className={`shell ${screen === 'game' || screen === 'filter' ? 'playing' : ''}`}>
     <header>
-      <button className="brand bare" onClick={() => running ? setExitOpen(true) : setScreen('home')}><span className="seal" aria-hidden="true"><i>大</i><i>成</i><i>会</i><i>语</i></span><span className="brand-text">成语大会<small>朋友之间的默契挑战</small></span></button>
+      <button className="brand bare" onClick={() => screen === 'filter' ? saveFilteredLibrary() : running ? setExitOpen(true) : setScreen('home')}><span className="seal" aria-hidden="true"><i>大</i><i>成</i><i>会</i><i>语</i></span><span className="brand-text">成语大会<small>朋友之间的默契挑战</small></span></button>
       <div className="header-actions">{screen !== 'home' && <button className="text-button" onClick={fullscreen}>{isFullscreen ? '退出全屏' : '全屏显示'}</button>}<span className="edition">一起玩 · 尽兴猜</span></div>
     </header>
+
+    {screen === 'filter' && <LibraryFilter words={words} name={library} classify={classify} onRemove={word => setWords(current => current.filter(item => item !== word))} onExit={saveFilteredLibrary}/>}
 
     {screen === 'home' && <>
       <section className="hero"><svg className="hero-art" viewBox="0 0 600 380" aria-hidden="true"><defs><linearGradient id="far" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#8fa497" stopOpacity=".55"/><stop offset="1" stopColor="#8fa497" stopOpacity="0"/></linearGradient><linearGradient id="near" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#243b33" stopOpacity=".78"/><stop offset=".75" stopColor="#243b33" stopOpacity="0"/></linearGradient><filter id="wash"><feGaussianBlur stdDeviation="1.6"/></filter></defs><circle cx="440" cy="104" r="54" fill="#c0492f" opacity=".88"/><path filter="url(#wash)" fill="url(#far)" d="M0 250 C60 210 90 160 140 170 C180 178 200 120 250 110 C300 100 320 170 370 160 C420 150 450 90 500 120 C540 144 570 190 600 180 L600 380 L0 380Z"/><path filter="url(#wash)" fill="url(#near)" d="M40 380 C80 320 120 250 170 240 C205 233 220 280 260 270 C300 260 330 200 380 215 C420 227 430 290 480 300 C520 308 560 280 600 300 L600 380Z"/><path d="M300 330 q30 -8 60 0 M330 344 q40 -8 80 0" stroke="#243b33" strokeOpacity=".25" strokeWidth="1.5" fill="none"/></svg><p className="eyebrow">以词会友，以意相通</p><h1>四个字，<br/>有你们的<span>默契。</span></h1><p>你来比划，我来猜。选一种玩法，开启今天的成语大会。</p></section>
@@ -181,7 +207,7 @@ export default function Home() {
               <p className={`hint ${ratioSum !== 100 ? 'danger' : ''}`}>合计 {ratioSum}%{ratioSum !== 100 ? '，需调整为 100%' : ''}。每 10 题按比例抽取，设为 0% 的难度不出题。</p>
             </div>
           </section>
-          <section className="panel library"><h2><span>二</span> 挑选题库</h2><div className="file-icon">词</div><strong>{library}</strong><p>{words.length.toLocaleString()} 个成语 · 分层随机 · 本轮不重复</p><p className="level-counts">{levels.map(level => <span key={level}><i className={`level ${level}`}>{levelMarks[level]}</i>{counts[level].toLocaleString()}</span>)}</p><label className={`upload-button ${reading ? 'disabled' : ''}`}>{reading ? '正在读取…' : '↑ 导入 TXT 题库'}<input type="file" accept=".txt,text/plain" disabled={reading} onChange={event => { upload(event.target.files?.[0]); event.target.value = ''; }}/></label><button className="text-button" type="button" onClick={resetLibrary}>恢复默认题库</button><p className="hint">每行一个成语，可在后面加空格和难度「上 / 中 / 下」；<br/>也兼容「成语 + 空格 + 数字」。<br/>文件仅在当前浏览器读取，不上传。</p></section>
+          <section className="panel library"><div className="library-heading"><h2><span>二</span> 挑选题库</h2><button type="button" className="filter-library-button" disabled={reading || !words.length} onClick={startFilter}>筛选题库</button></div><div className="file-icon">词</div><strong>{library}</strong><p>{words.length.toLocaleString()} 个成语 · 分层随机 · 本轮不重复</p><p className="level-counts">{levels.map(level => <span key={level}><i className={`level ${level}`}>{levelMarks[level]}</i>{counts[level].toLocaleString()}</span>)}</p><label className={`upload-button ${reading ? 'disabled' : ''}`}>{reading ? '正在读取…' : '↑ 导入 TXT 题库'}<input type="file" accept=".txt,text/plain" disabled={reading} onChange={event => { upload(event.target.files?.[0]); event.target.value = ''; }}/></label><button className="text-button" type="button" onClick={resetLibrary}>恢复默认题库</button><p className="hint">每行一个成语，可在后面加空格和难度「上 / 中 / 下」；<br/>也兼容「成语 + 空格 + 数字」。<br/>文件仅在当前浏览器读取，不上传。</p></section>
         </div>
         {notice && <p className="notice" role="status">{notice}</p>}
         {error && <p className="error" role="alert">{error}</p>}
